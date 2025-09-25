@@ -1,3 +1,5 @@
+// server/index.ts
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -6,6 +8,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Logging middleware for API calls
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -24,11 +27,9 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
-
       log(logLine);
     }
   });
@@ -53,20 +54,17 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ✅ PORT handling for both dev & deployment
-  const port = parseInt(
-    process.env.PORT || (app.get("env") === "development" ? "3000" : "5000"),
-    10
-  );
+  console.log("ENV CHECK:", {
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY ? "loaded" : "missing",
+    OPENROUTER_API_BASE: process.env.OPENROUTER_API_BASE,
+    NODE_ENV: process.env.NODE_ENV,
+  });
 
-  server.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`🚀 Server running in ${app.get("env")} mode on port ${port}`);
-    }
-  );
+  const port = parseInt(process.env.PORT || "5000", 10);
+  // ✅ force localhost on Windows (fixes ENOTSUP)
+  const host = process.env.HOST || "127.0.0.1";
+
+  server.listen(port, host, () => {
+    log(`🚀 FlashPress News serving on http://${host}:${port} [${app.get("env")}]`);
+  });
 })();
